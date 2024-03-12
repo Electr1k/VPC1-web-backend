@@ -1,0 +1,8 @@
+{% layout "default-layout.liquid" %}
+{% block %}
+    {% if result == "Infinity" or result == "NaN" %}
+        <h2>Ooops, division by zero</h2>
+    {% else %}
+        <h2>The result is {{ result }}</h2>
+    {% endif %}
+{% endblock %}

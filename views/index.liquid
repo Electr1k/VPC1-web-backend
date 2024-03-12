@@ -1,0 +1,14 @@
+{% layout "default-layout.liquid" %}
+{% block %}
+  <form method='POST' action='/calculate'>
+    <input type='number' name="operand1" placeholder="Value" required/>
+    <select name='operation'>
+        <option value='+'>+</option>
+        <option value='-'>-</option>
+        <option value='/'>/</option>
+        <option value='*'>*</option>
+    </select>
+    <input type='number' name="operand2" placeholder="Value" required/>
+    <input type='submit' value='result'/>
+  </form>
+{% endblock %}
