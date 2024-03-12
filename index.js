@@ -1,59 +1,25 @@
-const express = require('express');
-const { Liquid } = require('liquidjs');
 const fs = require('node:fs');
-const app = express();
+const readline = require('node:readline');
+const {format, parse} = require('date-fns');
 
-app.use('/s', express.static('content'));
-app.use(express.urlencoded({extended: true}));
+const inputPath = "input.txt";
+const outputInPath = "output_in.txt";
+const outputOutPath = "output_out.txt";
 
-const engine = new Liquid();
+const inputStream = fs.createReadStream(inputPath);
+const outputInStream = fs.createWriteStream(outputInPath);
+const outputOutStream = fs.createWriteStream(outputOutPath);
 
-// register liquid engine
-app.engine('liquid', engine.express()); 
-app.set('views', './views');            // specify the views directory
-app.set('view engine', 'liquid');       // set liquid to default
+const rl = readline.createInterface(inputStream);
 
-const outputStream = fs.createWriteStream("output.txt");
-
-app.get('/', (req, res) => {
-    res.render('index');
-});
-
-
-app.post('/calculate', (req, res) => {
-    console.log(req.body)
-    let result = 0;
-    try{
-        switch(req.body.operation){
-            case '+':
-                result = Number(req.body.operand1) + Number(req.body.operand2); 
-                break;
-            case '-':
-                result = Number(req.body.operand1) - Number(req.body.operand2); 
-                break;
-            case '*':
-                result = Number(req.body.operand1) * Number(req.body.operand2); 
-                break;
-            case '/':
-                result = Number(req.body.operand1) / Number(req.body.operand2); 
-                break;
-        }
-        const res = `${req.body.operand1} ${req.body.operation} ${req.body.operand2} = ${result}\n`;
-        outputStream.write(res);
+rl.on('line', (line)=>{
+    const data = line.split(' ');
+    const date = parse(data[0], 'yyyy-mm-dd', new Date());
+    const out = format(date, 'mm.dd.yyyy') + ' ' + data[1] + ' ' + data[2] + ' ' + data[3];
+    if (data[2] === "IN"){
+        outputInStream.write(out + '\n');
     }
-    catch(e){
-
+    else{
+        outputOutStream.write(out + '\n');
     }
-    res.redirect(`/result?v=${result}`);
-
 });
-
-app.get('/result', (req, res) => {
-    res.render("result", {
-        result: req.query.v,
-    });
-});
-
-
-
-app.listen(3000);
