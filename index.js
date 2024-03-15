@@ -1,6 +1,9 @@
 const express = require('express');
 const { Liquid } = require('liquidjs');
 const fs = require('node:fs');
+const readline = require('node:readline');
+
+
 const app = express();
 
 app.use('/s', express.static('content'));
@@ -54,6 +57,21 @@ app.get('/result', (req, res) => {
     });
 });
 
+app.get('/history', (req, res) => {
+    const inputStream = fs.createReadStream("output.txt");
+    const rl = readline.createInterface(inputStream);
+    var list = [];
+    rl.on('line', (line)=>{
+        list.push(line);
+    })
+
+    rl.on('close', ()=>{
+        console.log("close");
+        res.render("history", {
+            list: list,
+        });
+    })
+});
 
 
 app.listen(3000);
