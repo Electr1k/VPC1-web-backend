@@ -1,77 +1,103 @@
 const express = require('express');
 const { Liquid } = require('liquidjs');
 const fs = require('node:fs');
+
 const readline = require('node:readline');
+const session = require('express-session');
 
 
 const app = express();
-
-app.use('/s', express.static('content'));
-app.use(express.urlencoded({extended: true}));
-
 const engine = new Liquid();
 
-// register liquid engine
 app.engine('liquid', engine.express()); 
-app.set('views', './views');            // specify the views directory
-app.set('view engine', 'liquid');       // set liquid to default
+app.set('views', './views');
+app.set('view engine', 'liquid');
 
-const outputStream = fs.createWriteStream("output.txt");
+app.use(express.urlencoded({extended: true}));
+app.use(session({
+    secret: 'asda21e2e',
+    resave: false,
+    saveUninitialized: true,
+  }))
 
-app.get('/', (req, res) => {
-    res.render('index');
-});
-
-
-app.post('/calculate', (req, res) => {
-    console.log(req.body)
-    let result = 0;
-    try{
-        switch(req.body.operation){
-            case '+':
-                result = Number(req.body.operand1) + Number(req.body.operand2); 
-                break;
-            case '-':
-                result = Number(req.body.operand1) - Number(req.body.operand2); 
-                break;
-            case '*':
-                result = Number(req.body.operand1) * Number(req.body.operand2); 
-                break;
-            case '/':
-                result = Number(req.body.operand1) / Number(req.body.operand2); 
-                break;
-        }
-        const res = `${req.body.operand1} ${req.body.operation} ${req.body.operand2} = ${result}\n`;
-        outputStream.write(res);
+function auth(req, res, next) {
+    if (req.user) {
+        next();
+    } else {
+        res.redirect("/error?error=You are not logged in");
     }
-    catch(e){
+}
 
+function isAdmin(req, res, next) {
+    if (req.user.role == "admin") {
+        next();
+    } else {
+        res.redirect("/error?error=You are not an admin");
     }
-    res.redirect(`/result?v=${result}`);
+}
 
+app.use((req, res, next) => {
+    if (req.session.user) {
+        req.user = req.session.user
+    }
+    next();
 });
 
-app.get('/result', (req, res) => {
-    res.render("result", {
-        result: req.query.v,
-    });
-});
+app.get('/login', (req, res) => res.render('login'));
 
-app.get('/history', (req, res) => {
-    const inputStream = fs.createReadStream("output.txt");
+app.post('/login', (req, res) => {
+    const inputStream = fs.createReadStream("users.txt");
     const rl = readline.createInterface(inputStream);
-    var list = [];
+    var userIsFound = false;
     rl.on('line', (line)=>{
-        list.push(line);
+        const [login, password, role] = line.split(' ');
+        if (login == req.body.login && password == req.body.password){
+            userIsFound = true;
+            req.session.user = {
+                login: login,
+                role: role
+            };
+            res.redirect("/");
+            rl.close();
+            return;
+        }
+    })
+    rl.on('close', ()=>{
+        if (!userIsFound) res.redirect("/error?error=Wrong login or password");
     })
 
-    rl.on('close', ()=>{
-        console.log("close");
-        res.render("history", {
-            list: list,
-        });
-    })
 });
 
+app.get('/', auth, (req, res) => {
+    console.log(req.user);
+    res.render('home', {
+        login: req.user.login,
+        role: req.user.role
+    })
+})
+
+
+app.get('/logout', (req, res) => {
+    req.session.user = undefined;
+    res.redirect('/login');
+ });
+
+ app.get('/users', [auth, isAdmin], (req, res) => {
+    const inputStream = fs.createReadStream("users.txt");
+    const rl = readline.createInterface(inputStream);
+    const users = [];
+    rl.on('line', (line)=>{
+        users.push(line);
+    })
+    rl.on('close', ()=>{
+        res.render('users', {
+            users: users
+        });  
+    })
+ });
+
+ app.get('/error', (req, res) => {
+    res.render('error', { error: req.query.error })
+ });
 
 app.listen(3000);
