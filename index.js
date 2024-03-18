@@ -21,7 +21,7 @@ app.use(session({
   }))
 
 function auth(req, res, next) {
-    if (req.user) {
+    if (req.session.user) {
         next();
     } else {
         res.redirect("/error?error=You are not logged in");
@@ -29,19 +29,13 @@ function auth(req, res, next) {
 }
 
 function isAdmin(req, res, next) {
-    if (req.user.role == "admin") {
+    if (req.session.user.role == "admin") {
         next();
     } else {
         res.redirect("/error?error=You are not an admin");
     }
 }
 
-app.use((req, res, next) => {
-    if (req.session.user) {
-        req.user = req.session.user
-    }
-    next();
-});
 
 app.get('/login', (req, res) => res.render('login'));
 
@@ -69,10 +63,9 @@ app.post('/login', (req, res) => {
 });
 
 app.get('/', auth, (req, res) => {
-    console.log(req.user);
     res.render('home', {
-        login: req.user.login,
-        role: req.user.role
+        login: req.session.user.login,
+        role: req.session.user.role
     })
 })
 
