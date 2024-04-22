@@ -1,0 +1,23 @@
+{% layout "default-layout.liquid" %}
+{% block %}
+    {% for task in tasks %}
+        <p style="color:
+            {% if task.isRed == true %}
+               red
+           {% else %}
+               black
+           {% endif %}
+           ">{{ task.id }} {{ task.title }} {{ task.dateEnd }}</p>
+        <form method='POST' action='/moveTaskToCompleted?id={{task.id}}'>
+            <input type='submit' value='Завершить' id={{task.id}}/>
+        </form>
+        <br>
+    {% endfor %}
+    <br>
+    <form method='POST' action='/addTask'>
+        <input type='text' name="title" placeholder="Новое задание" required/>
+        <br>
+        <input type='date' name="dateEnd"/>
+        <input type='submit' value='Добавить'/>
+    </form>
+{% endblock %}

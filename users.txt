@@ -1,3 +1,0 @@
-vasya 123 user
-petya 51 admin
-vova vovan user
