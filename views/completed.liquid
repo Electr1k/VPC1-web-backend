@@ -1,0 +1,10 @@
+{% layout "default-layout.liquid" %}
+{% block %}
+    {% for task in tasks %}
+        <p >{{ task.id }} {{ task.title }}</p>
+
+        <form method='POST' action='/deleteTask?id={{task.id}}'>
+            <input type='submit' value='Удалить' id={{task.id}}/>
+        </form>
+    {% endfor %}
+{% endblock %}

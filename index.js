@@ -1,96 +1,115 @@
 const express = require('express');
 const { Liquid } = require('liquidjs');
-const fs = require('node:fs');
-
-const readline = require('node:readline');
-const session = require('express-session');
-
+const { Sequelize, DataTypes } = require('sequelize');
 
 const app = express();
 const engine = new Liquid();
+
+const sequelize = new Sequelize(process.env.DB, 
+    process.env.USER,
+    process.env.PASSWORD,
+    {
+        dialect: process.env.DIALECT,
+        host: process.env.HOST,
+        port: process.env.PORT,
+    }
+)
+
+
+
+const Tasks = sequelize.define(process.env.DB,
+    {
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+            allowNull: false
+        },
+        title: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            maxLength: 255
+        },
+        dateEnd: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
+        isCompleted: {
+            type: DataTypes.BOOLEAN,
+            default: false,
+            allowNull: false,
+        }
+    }
+)
+
 
 app.engine('liquid', engine.express()); 
 app.set('views', './views');
 app.set('view engine', 'liquid');
 
 app.use(express.urlencoded({extended: true}));
-app.use(session({
-    secret: 'asda21e2e',
-    resave: false,
-    saveUninitialized: true,
-  }))
 
-function auth(req, res, next) {
-    if (req.session.user) {
-        next();
-    } else {
-        res.redirect("/error?error=You are not logged in");
-    }
-}
-
-function isAdmin(req, res, next) {
-    if (req.session.user.role == "admin") {
-        next();
-    } else {
-        res.redirect("/error?error=You are not an admin");
-    }
-}
-
-
-app.get('/login', (req, res) => res.render('login'));
-
-app.post('/login', (req, res) => {
-    const inputStream = fs.createReadStream("users.txt");
-    const rl = readline.createInterface(inputStream);
-    var userIsFound = false;
-    rl.on('line', (line)=>{
-        const [login, password, role] = line.split(' ');
-        if (login == req.body.login && password == req.body.password){
-            userIsFound = true;
-            req.session.user = {
-                login: login,
-                role: role
-            };
-            res.redirect("/");
-            rl.close();
-            return;
+app.get('/planned', async (req, res) => {
+    const tasks = await Tasks.findAll({where: {isCompleted: false}})
+    const tasksDto = []
+    tasks.map((task) => {
+        const taskDto = task.dataValues
+        console.log(`${taskDto.title} ${taskDto.dateEnd} ${Date.now() - taskDto.dateEnd}`)
+        if (taskDto.dateEnd){
+            taskDto.isRed = taskDto.dateEnd -  Date.now() < 1000 * 3600 * 24
         }
+        else taskDto.isRed = false
+        tasksDto.push(taskDto)
     })
-    rl.on('close', ()=>{
-        if (!userIsFound) res.redirect("/error?error=Wrong login or password");
+    res.render('planned', {
+        tasks: tasksDto,
     })
-
 });
 
-app.get('/', auth, (req, res) => {
-    res.render('home', {
-        login: req.session.user.login,
-        role: req.session.user.role
+app.get('/completed', async (req, res) => {
+    const tasks = await Tasks.findAll({where: {isCompleted: true}})
+    const tasksDto = []
+    tasks.map((task) => {
+        tasksDto.push(task.dataValues)
     })
-})
-
-
-app.get('/logout', (req, res) => {
-    req.session.user = undefined;
-    res.redirect('/login');
- });
-
- app.get('/users', [auth, isAdmin], (req, res) => {
-    const inputStream = fs.createReadStream("users.txt");
-    const rl = readline.createInterface(inputStream);
-    const users = [];
-    rl.on('line', (line)=>{
-        users.push(line);
+    res.render('completed', {
+        tasks: tasksDto,
     })
-    rl.on('close', ()=>{
-        res.render('users', {
-            users: users
-        });  
+});
+
+
+app.post('/addTask', async (req, res) => {
+    console.log(req.body)
+    if (req.body.dateEnd.length === 0) req.body.dateEnd = undefined
+    await Tasks.create({
+        title: req.body.title,
+        dateEnd: req.body.dateEnd,
+        isCompleted: false
     })
- });
 
- app.get('/error', (req, res) => {
-    res.render('error', { error: req.query.error })
- });
+    res.redirect('planned')
+});
 
-app.listen(3000);
+
+app.post('/moveTaskToCompleted', async (req, res) => {
+    console.log(req.query)
+    await Tasks.update({isCompleted: true},
+        {
+            where: {
+                id: Number(req.query.id)
+            }
+        })
+    res.redirect('planned')
+});
+
+app.post('/deleteTask', async (req, res) => {
+    console.log(req.query)
+    await Tasks.destroy({
+        where: {
+            id: Number(req.query.id)
+        },
+    });
+    res.redirect('completed')
+});
+
+app.listen(8080);
