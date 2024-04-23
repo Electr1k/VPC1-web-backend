@@ -5,16 +5,19 @@ const { Sequelize, DataTypes } = require('sequelize');
 const app = express();
 const engine = new Liquid();
 
+const sequelize = new Sequelize(process.env.DB, 
+    process.env.USER,
+    process.env.PASSWORD,
+    {
+        dialect: process.env.DIALECT,
+        host: process.env.HOST,
+        port: process.env.PORT,
+    }
+)
 
-const sequelize = new Sequelize('tasks', 'postgres', 'postgres',{
-    dialect: 'postgres',
-    host: 'localhost',
-    port: 5432,
-})
 
 
-
-const Tasks = sequelize.define('tasks',
+const Tasks = sequelize.define(process.env.DB,
     {
         id: {
             type: DataTypes.INTEGER,
@@ -74,6 +77,7 @@ app.get('/completed', async (req, res) => {
     })
 });
 
+
 app.post('/addTask', async (req, res) => {
     console.log(req.body)
     if (req.body.dateEnd.length === 0) req.body.dateEnd = undefined
@@ -108,4 +112,4 @@ app.post('/deleteTask', async (req, res) => {
     res.redirect('completed')
 });
 
-app.listen(3000);
+app.listen(8080);
