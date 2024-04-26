@@ -6,6 +6,12 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=$POSTGRESDB_USER
+      - DB_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+      - DB_NAME=$POSTGRESDB_DATABASE
+      - DB_PORT=$POSTGRESDB_DOCKER_PORT
     ports:
       - 3000:8080 
     depends_on:
@@ -16,15 +22,13 @@ services:
     image: postgres
     restart: always
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./pgdata:/var/lib/postgresql/data
     environment:
-        POSTGRES_DB: ${DB}
-        POSTGRES_USER: ${USER}
-        POSTGRES_PASSWORD: ${PASSWORD}
-        PGDATA: "/var/lib/postgresql/data/pgdata"
+      - POSTGRES_USER=$POSTGRESDB_USER
+      - POSTGRES_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+      - POSTGRES_DB=$POSTGRESDB_DATABASE
     ports:
-      - 5432:8000
+      - 5433:5432
     container_name: practis5_db
-    command: postgres -p 8000
 volumes:
   pgdata:
