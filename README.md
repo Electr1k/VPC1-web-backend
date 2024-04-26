@@ -4,4 +4,5 @@
 
 Для развертывания: 
 Win: docker-compose up
+
 Linux: sudo docker-compose up
