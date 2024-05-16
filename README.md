@@ -3,6 +3,5 @@
 ## Practis-5
 
 Для развертывания: 
-Win: docker-compose up
-
-Linux: sudo docker-compose up
+docker-compose build
+docker-compose up
